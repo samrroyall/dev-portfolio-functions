@@ -4,6 +4,10 @@ const stringEnvVariables = [
   process.env.SPOTIFY_CLIENT_ID,
   process.env.SPOTIFY_CLIENT_SECRET,
   process.env.SPOTIFY_REFRESH_TOKEN,
+  process.env.STRAVA_API_URL,
+  process.env.STRAVA_CLIENT_ID,
+  process.env.STRAVA_CLIENT_SECRET,
+  process.env.STRAVA_REFRESH_TOKEN,
 ];
 
 const numericEnvVariables = [process.env.CACHE_SECONDS];

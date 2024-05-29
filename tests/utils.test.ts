@@ -1,7 +1,9 @@
 import "dotenv/config";
-import { expect, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import { envVariablesValid } from "../api/utils";
 
-test("env variables are valid", () => {
-  expect(envVariablesValid()).toEqual(true);
+describe("utils tests", () => {
+  test("env variables are valid", () => {
+    expect(envVariablesValid()).toEqual(true);
+  });
 });

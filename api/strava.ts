@@ -1,32 +1,29 @@
 import { type VercelRequest, type VercelResponse } from "@vercel/node";
 import {
-  mapApiSpotifyTrackToTrack,
+  createRunCalendar,
   type AccessTokenResponse,
   type ApiRefreshTokenResponse,
-  type ApiSpotifyTopTracksResponse,
-  type Track,
+  type ApiStravaActivitiesResponse,
+  type RunMonth,
 } from "../models";
 import { envVariablesValid } from "./utils";
 
-export const getSpotifyAccessToken = async (): Promise<AccessTokenResponse> => {
+export const getStravaAccessToken = async (): Promise<AccessTokenResponse> => {
   try {
-    const baseUrl = process.env.SPOTIFY_ACCOUNT_URL!;
-    const clientId = process.env.SPOTIFY_CLIENT_ID!;
-    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET!;
-    const refreshToken = process.env.SPOTIFY_REFRESH_TOKEN!;
+    const baseUrl = process.env.STRAVA_API_URL!;
+    const clientId = process.env.STRAVA_CLIENT_ID!;
+    const clientSecret = process.env.STRAVA_CLIENT_SECRET!;
+    const refreshToken = process.env.STRAVA_REFRESH_TOKEN!;
 
-    const token = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+    const queryParams = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    });
 
-    const apiResponse = await fetch(`${baseUrl}/api/token`, {
+    const apiResponse = await fetch(`${baseUrl}/oauth/token?${queryParams}`, {
       method: "POST",
-      headers: {
-        Authorization: `Basic ${token}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-      }),
     });
 
     if (apiResponse.status !== 200) {
@@ -53,21 +50,23 @@ export const getSpotifyAccessToken = async (): Promise<AccessTokenResponse> => {
   }
 };
 
-interface TopTracksResponse {
-  tracks: Track[] | null;
+interface RunCalendarResponse {
+  runs: RunMonth | null;
   status: number;
   message: string;
 }
 
-export const getSpotifyTopTracks = async (
+export const getStravaRunCalendar = async (
   token: string,
-  limit = 5,
-): Promise<TopTracksResponse> => {
+): Promise<RunCalendarResponse> => {
   try {
-    const apiUrl = process.env.SPOTIFY_API_URL!;
+    const apiUrl = process.env.STRAVA_API_URL!;
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth());
 
     const apiResponse = await fetch(
-      `${apiUrl}/me/top/tracks?time_range=short_term&limit=${limit}`,
+      `${apiUrl}/athlete/activities?after=${startOfMonth.valueOf() / 1000}`,
       {
         method: "GET",
         headers: {
@@ -78,22 +77,22 @@ export const getSpotifyTopTracks = async (
 
     if (apiResponse.status !== 200) {
       return {
-        tracks: null,
+        runs: null,
         status: apiResponse.status,
         message: apiResponse.statusText,
       };
     }
 
-    const jsonData = (await apiResponse.json()) as ApiSpotifyTopTracksResponse;
+    const jsonData = (await apiResponse.json()) as ApiStravaActivitiesResponse;
 
     return {
-      tracks: jsonData.items.map(mapApiSpotifyTrackToTrack),
+      runs: createRunCalendar(jsonData),
       status: 200,
       message: "Success",
     };
   } catch (err) {
     return {
-      tracks: null,
+      runs: null,
       status: 500,
       message: JSON.stringify(err),
     };
@@ -115,27 +114,27 @@ export default async function (
       token,
       status: tokenStatus,
       message: tokenMessage,
-    } = await getSpotifyAccessToken();
+    } = await getStravaAccessToken();
 
     if (!token) {
       return response.status(tokenStatus).json({ tokenMessage });
     }
 
     const {
-      tracks,
-      status: tracksStatus,
-      message: tracksMessage,
-    } = await getSpotifyTopTracks(token);
+      runs,
+      status: runsStatus,
+      message: runsMessage,
+    } = await getStravaRunCalendar(token);
 
-    if (!tracks) {
-      return response.status(tracksStatus).json({ tracksMessage });
+    if (!runs) {
+      return response.status(runsStatus).json({ runsMessage });
     }
 
     const cacheSeconds = process.env.CACHE_SECONDS!;
 
     response.setHeader("Cache-Control", `public, s-maxage=${cacheSeconds}`);
 
-    return response.status(200).json(tracks);
+    return response.status(200).json(runs);
   } catch (err) {
     return response.status(500).json({ message: JSON.stringify(err) });
   }
