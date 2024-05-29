@@ -1,7 +1,3 @@
-export interface ApiSpotifyRefreshTokenResponse {
-  access_token: string;
-}
-
 interface ApiSpotifyLink {
   external_urls: {
     spotify: string;
