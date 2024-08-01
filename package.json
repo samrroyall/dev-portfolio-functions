@@ -1,6 +1,6 @@
 {
   "name": "dev-portfolio-functions",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Edge functions serving my developer portfolio",
   "repository": "https://github.com/samrroyall/dev-portfolio-functions.git",
   "license": "MIT",
