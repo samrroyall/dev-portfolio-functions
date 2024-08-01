@@ -52,14 +52,25 @@ const mapApiStravaActivityToRunDay = ({
 
 const now = new Date();
 
-const daysInMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+// now.getMonth() + 1 is the next month, placing 0 for day does a negative
+// wrap to the last day of the previous month, and getDate() gets the day, not
+// the day index
+const daysInMonth = new Date(
+  now.getFullYear(),
+  now.getMonth() + 1,
+  0,
+).getDate();
 
+// the date is the first day of the current month, getDay() returns the day of
+// the week index for it
 const firstOfMonthDayIdx = new Date(
   now.getFullYear(),
   now.getMonth(),
   1,
 ).getDay();
 
+// number of rows in our calendar is the number of days in the month, shifted
+// right based on the first day of the month's day of the week index over 7
 const numWeeksInMonth = Math.ceil((firstOfMonthDayIdx + daysInMonth) / 7);
 
 export const createRunCalendar = (
@@ -71,7 +82,7 @@ export const createRunCalendar = (
     runs.push([null, null, null, null, null, null, null]);
   }
 
-  for (let i = firstOfMonthDayIdx; i <= firstOfMonthDayIdx + daysInMonth; i++) {
+  for (let i = firstOfMonthDayIdx; i < firstOfMonthDayIdx + daysInMonth; i++) {
     runs[Math.floor(i / 7)][i % 7] = [];
   }
 
