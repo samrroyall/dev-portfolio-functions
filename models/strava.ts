@@ -2,7 +2,7 @@ interface ApiStravaActivity {
   id: number;
   sport_type: string;
   distance: number;
-  elapsed_time: number;
+  moving_time: number;
   start_date_local: string;
   average_heartrate?: number;
 }
@@ -34,11 +34,11 @@ const metersPerMile = 1609.344;
 const mapApiStravaActivityToRunDay = ({
   id,
   distance,
-  elapsed_time,
+  moving_time,
   start_date_local,
   average_heartrate,
 }: ApiStravaActivity): RunDay => {
-  const minutes = elapsed_time / 60;
+  const minutes = moving_time / 60;
   const miles = distance / metersPerMile;
 
   return {
