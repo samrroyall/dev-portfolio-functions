@@ -1,12 +1,15 @@
 import { type VercelRequest, type VercelResponse } from "@vercel/node";
 import {
   createRunCalendar,
+  getCalendarMonth,
   type AccessTokenResponse,
   type ApiRefreshTokenResponse,
   type ApiStravaActivitiesResponse,
   type RunMonth,
 } from "../models";
-import { envVariablesValid } from "./utils";
+import { envVariablesValid, parseUtcOffset } from "./utils";
+
+const secondsPerDay = 24 * 60 * 60;
 
 export const getStravaAccessToken = async (): Promise<AccessTokenResponse> => {
   try {
@@ -58,15 +61,27 @@ interface RunCalendarResponse {
 
 export const getStravaRunCalendar = async (
   token: string,
+  utcOffset = 0,
 ): Promise<RunCalendarResponse> => {
   try {
     const apiUrl = process.env.STRAVA_API_URL!;
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth());
+    const calendarMonth = getCalendarMonth(new Date(), utcOffset);
+
+    // Strava compares `after` against each activity's UTC start time, but runs
+    // go on the calendar by their local date. Start a day early so a run on the
+    // 1st is included in any timezone; createRunCalendar drops the extra day
+    const after =
+      Date.UTC(calendarMonth.year, calendarMonth.month, 1) / 1000 -
+      secondsPerDay;
+
+    const queryParams = new URLSearchParams({
+      after: after.toString(),
+      per_page: "200",
+    });
 
     const apiResponse = await fetch(
-      `${apiUrl}/athlete/activities?after=${startOfMonth.valueOf() / 1000}`,
+      `${apiUrl}/athlete/activities?${queryParams}`,
       {
         method: "GET",
         headers: {
@@ -86,7 +101,7 @@ export const getStravaRunCalendar = async (
     const jsonData = (await apiResponse.json()) as ApiStravaActivitiesResponse;
 
     return {
-      runs: createRunCalendar(jsonData),
+      runs: createRunCalendar(jsonData, calendarMonth),
       status: 200,
       message: "Success",
     };
@@ -100,7 +115,7 @@ export const getStravaRunCalendar = async (
 };
 
 export default async function (
-  _request: VercelRequest,
+  request: VercelRequest,
   response: VercelResponse,
 ) {
   try {
@@ -124,7 +139,7 @@ export default async function (
       runs,
       status: runsStatus,
       message: runsMessage,
-    } = await getStravaRunCalendar(token);
+    } = await getStravaRunCalendar(token, parseUtcOffset(request.query.offset));
 
     if (!runs) {
       return response.status(runsStatus).json({ runsMessage });

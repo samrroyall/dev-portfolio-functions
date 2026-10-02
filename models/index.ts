@@ -6,8 +6,10 @@ export {
 
 export {
   type ApiStravaActivitiesResponse,
+  type CalendarMonth,
   type RunMonth,
   createRunCalendar,
+  getCalendarMonth,
 } from "./strava";
 
 export interface ApiRefreshTokenResponse {
