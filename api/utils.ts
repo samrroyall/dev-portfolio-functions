@@ -15,3 +15,13 @@ const numericEnvVariables = [process.env.CACHE_SECONDS];
 export const envVariablesValid = (): boolean =>
   stringEnvVariables.filter((v) => !v).length === 0 &&
   numericEnvVariables.filter((v) => !v || isNaN(parseInt(v))).length === 0;
+
+// the viewer's UTC offset in hours (e.g. -7 for PDT), from the offset query
+// param. anything missing or invalid falls back to UTC
+export const parseUtcOffset = (
+  value: string | string[] | undefined,
+): number => {
+  const offset = Number(Array.isArray(value) ? value[0] : value);
+
+  return Number.isFinite(offset) && Math.abs(offset) <= 14 ? offset : 0;
+};
